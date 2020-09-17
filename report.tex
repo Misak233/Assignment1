@@ -1,0 +1,112 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{dmasproject}
+% if you need additional LaTeX packages, add them here
+
+\title{Assignment1 Group Report}
+% sort your names alphabetically by last name
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+In contemporary society, relationship analysis has attracted more and more researchers. In this report, we aim to construct a relationship prediction system to do the relationship predicts the people that never meet before. For example, the ‘people you would like’ function in twitter and Facebook is one of the practical applications of this system. In this report, we will introduce the features we applied in the prediction system as well as the baseline and final approach we used to construct the prediction.
+
+\section{Problem Statement}
+\subsection{Training Set Generation}
+Link prediction problems has an abundance of metrics from previous researches ranging from local similarity based algorithms, to maximum likelihood algorithms and probabilistic models. The last two however requires modeling the entire graph which are not feasible with our graph size. Hence our solution focuses mainly on node similarity, with salable local similarity metrics as additional features. Equipped with such features we’ll then expand the datasets to include false edges, introducing standard classification models.
+
+\subsection{Features Extraction}
+In this section, I will show some explanations about how we choose the graph as well as extract input features from it. 
+\subsubsection{Graph Selection}
+With reasonably salable local similarity/path-based algorithms it will quickly become infeasible to calculate on an average machine as the size of the training data increases. Selecting a subgraph that captures as much information as possible also lands in our feature engineering process.
+
+If a path exists between all node pairs of one component of a directed graph, then it is called a Strongly Connected Component(SCC). This subgraph captures a subset of nodes that is the main component containing a majority of the graph information. However this graph may not contain nodes in the test data and contains information that is not relevant to the final prediction.
+
+Shortest Path captures all the passing nodes in the shortest path between two nodes, circumventing the node inefficiency problem posed by SCC and prefers information around test nodes over redundant information that may act as noise.
+
+After composed these graphs together, we can get several pairs of nodes which hold a positive link between them. So that we will then split 10\% from these node pairs to generate the test set and the least become training set for building our model. Also, to transform this problem into a binary classification problem, we will generate the same number of negative links into our data sets.
+
+
+\subsubsection{Node Embedding}
+After getting the graphs, the feature we will extract from graphs is the node embedding. When choosing the features, we suggest to find a vector that can easily represent the node itself according to its neighbour information. So that we choose the node embedding. The node embedding is a model that based on the random walk algorithm, for each user it will set a fixed number of walkers which do a series of walks. After generating all the walkers, the model will form these walkers into sentences to input into a two-layer neural network Word2vec, which is used to catch the contextual information from the neighbour nodes. In this unsupervised pre-trained model, we can get a separated 128 dimensions vector for each node which can be on behalf of each node's neighbourhood information. This embedding of nodes is the core feature in our experiment; it will be used to help us handle different levels of node's information.
+
+\section{Evaluation Matrix}
+In this section, we will give a simple introduction to the evaluation terms we used to show how good our model performs in the test examples.
+\subsection{Area under the curve}
+This matrix can represent the degree of separability between predicted classes which can tell us the system’s ability to distinguish the data labels during the experiment. It can also be simply built with the combinations of True Positive and False Positive terms in this project. Therefore, we will use this matrix to measure our models' performance in the experiment.
+
+
+\section{Models}
+Generally, we have transformed this project into a binary classification problem so that we can make predictions to the links between nodes to check the existence of them. In this section, we will show two simple baseline methods and the state of art approaches that we used in our final prediction system.
+
+\subsection{Baseline Method}
+\subsubsection{Random Forest}
+To attach a simple approach to this project, we will first choose the Random Forest as our baseline method. The random forest is composed of many decision trees and each decision tree is classified separately in the random forest. The max depth parameter affects the depth expanded until all leaves are pure. The max-leaf nodes parameter support to reduce the impurity. With the support of same feature extraction, such as common neighbours and shortest path, we adjust the parameters of random forest classifier many times \autoref{tab3:results}.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{lrr}
+    \toprule
+    Methods & Experiment & Kaggle \\
+    \midrule
+    Default parameter  & 0.743& 0.709 \\
+    max_depth=10,max_leaf_nodes=10 & 0.797 & 0.7523 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Results of Random Forest in experiment and Kaggle .}\label{tab3:results}
+\end{table}
+As the result is shown, the best result of random forest is not good so far as expected. The reason could be that the feature generated is continuous data, however, the random forest is not good at providing precise continuous nature prediction. Hence, we will try to use another classification algorithm.
+
+
+\subsubsection{Logistic Regression}
+We then implement the Logistic Regression as the other method to predict the similarity of node-pairs relations. Because this problem is a binary classification problem, the Logistic Regression will be very suitable to predict the existence possibility of the edge from 0 to 1. In the baseline model, we will build three kinds of different logistic models to attach this which are I1-regularization, I2-regularization and the elastics way (I1-I2 combined way). Here is the result of Logistic regression in the experiment and Kaggle environment \autoref{tab1:results}.
+
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{lrr}
+    \toprule
+    Methods & Experiment & Kaggle \\
+    \midrule
+    I1  & 0.857& 0.801 \\
+    I2  & 0.891 & 0.753 \\
+    Elastic(ratio-0.5) & 0.885 & 0.774 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Results of Logistic Regression in experiment and kaggle .}\label{tab1:results}
+\end{table}
+
+As the result shows, we can find that the I1-regularization model behaves much better than the other two Logistic Regression models in the AUC score. That means in terms of this prediction task, the effect of avoiding over-fitting in I2-regularization is more important than the impact of reweighting features in I1-regularization. However, from the Kaggle view, the logistic regression is also not as good as expected, it could be caused by mishandling some feature relations in the logistic regression. Therefore, in this project, we will choose the I2-regularization as our baseline approach to make a comparison. In later work, we will pay attention to catching more feature relations.
+
+
+\subsection{Feedforward Neural Network}
+
+The state of art measurement in our approach is the three-layers feedforward neural network. According to the previous models, we find that simply extracting linear relations among features is not enough to attach a better model for this problem. Therefore, we introduce the neural network to handle the non-linear relations among features in this experiment. Because the embedding for each node is 128 dimensions, we hence build this network with two 64 output shape layers and using rectified linear activation function (ReLu) to catch the non-linear relations. The last output layer with the sigmoid function will be used to get the probability for link prediction. 
+
+Before starting the experiment,to fully test the performance of our model under different environments, we will split the test data sets into three separated data set which holds the same number of positive and negative links for each pair of nodes.  Here is the result of this approach in the experiment \autoref{tab2:results}.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{lrr}
+    \toprule
+    Methods & Feed-froward Neural Network & Logistic Regression\\
+    \midrule
+    Test-set 1  & 0.895 & 0.835\\
+    Test-set 2 & 0.897 & 0.847\\
+    Test-set 3 & 0.885 & 0.833\\
+    Kaggle 4 & 0.847 & 0.801\\
+    \bottomrule
+  \end{tabular}
+  \caption{Results of Neural Network and Baseline in experiment and kaggle .}\label{tab2:results}
+\end{table}
+As the result shows, in terms of the AUC score, with the help of the nonlinear functions, this model can reach much better results than the Logistic Regression. That indicates the relations between users can be caught not just by the linear relations such as graph degree, node distance, but also can be achieved by nonlinear relations. Besides, in the Kaggle result, it also gets a considerable improvement. However, we can observe that there still exists a huge margin between the experiment and the Kaggle result. The choice of training graph could cause it. That is, when this model trained by the selected graph, it will adjust the weight based on this graph so that it can be overfitted in it. Therefore, in the future work, we can focus on selecting more generative graphs which can handle more information about nodes.
+\section{Conclusion}
+The final approach is feedforward neural network with the support of node embedding. The random forest cannot predict the similarity of continuous feature, besides, the parameters of the random forest are failed to be adjusted to get the best results. The logistic regression, as a linear model, could be highly influenced by some noisy data and not perform well to predict the similarity between node pairs. Since our results are based on the graph with limited nodes, the performance is not expected as good as we want. We could establish a graph with the information of all nodes then extract features to support the neural network model.
+
+The primary challenge we encountered and in this project is dealing with graphical information. Ideally we'll have a sufficient computational resources to model the entire graph. But realistically, on top of intrinsic limitations of node embeddings, it is constructed on a induced graph, which could potentially harm the generalization ability of the final model. Furthermore the conversion to classification by adding fake edges is also prone to introducing unwanted data. It is two of the main compromises we have to make in order to make our models cheap enough to train, despite its implications.
+
+\printbibliography
+
+\end{document}
